@@ -2,18 +2,41 @@ local S = function( id )
 	return Pointshop2.GetSetting( "TTT Integration", id )
 end
 
+-- Count all player in round
+local function countPlayingPlayer()
+	count = 0;
+
+	for k, v in pairs( player.GetAll( ) ) do
+		if not v:IsSpec() then
+			count = count + 1;
+		end
+	end
+
+	return count;
+end
+
+-- Check if we should reward points (only if enought Players are playing)
+local function shouldReward()
+	return (countPlayingPlayer() >= S("PointDependencies.MinPlayer"));
+end
+
+
 local delayedRewards = {}
 local function delayReward( ply, points, message, small )
 	if S("Kills.DelayReward") then
 		table.insert( delayedRewards, { ply = ply, points = points, message = message, small = small } )
 	else
-		ply:PS2_AddStandardPoints( points, message, small )
+		if shouldReward() then 
+			ply:PS2_AddStandardPoints( points, message, small )
+		end
 	end
 end
 
 local function applyDelayedRewards( )
-	for k, v in ipairs( delayedRewards ) do
-		v.ply:PS2_AddStandardPoints( v.points, v.message, v.small )
+	if shouldReward() then 
+		for k, v in ipairs( delayedRewards ) do
+			v.ply:PS2_AddStandardPoints( v.points, v.message, v.small )
+		end
 	end
 
 	delayedRewards = {}
@@ -54,6 +77,10 @@ hook.Add( "TTTEndRound", "PS2_TTTEndRound", function( result )
 			if v:IsSpec( ) then
 				continue
 			end
+			
+			if not shouldReward() then
+				continue
+			end
 
 			if v:GetCleanRound( ) and S("RoundWin.CleanRound") then
 				v:PS2_AddStandardPoints( S("RoundWin.CleanRound"), "Clean round bonus", true )
@@ -70,6 +97,10 @@ hook.Add( "TTTEndRound", "PS2_TTTEndRound", function( result )
 		for k, v in pairs( player.GetAll( ) ) do
 			if not v:IsTraitor( ) then
 				continue
+			end
+			
+			if not shouldReward() then
+			    continue
 			end
 
 			if ( v:Alive( ) and not v:IsSpec( ) ) and not ( v.IsGhost and v:IsGhost( ) ) and S("RoundWin.TraitorAlive") then
@@ -102,9 +133,14 @@ hook.Add( "PlayerDeath", "PS2_PlayerDeath", function( victim, inflictor, attacke
 	end
 	if (attacker.IsGhost and attacker:IsGhost()) then return end --SpecDM Support.
 
+	if not shouldReward() then
+		return
+	end
+
 	if not victim.GetRole then
 		return
 	end
+	
 	local victimRole = victim:GetRole( )
 
 	if not attacker.GetRole then

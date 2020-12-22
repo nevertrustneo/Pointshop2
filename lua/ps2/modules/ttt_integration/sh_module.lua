@@ -107,6 +107,16 @@ MODULE.Settings.Server = {
 			tooltip = "Points awarded to a detective upon collecting DNA"
 		},
 	},
+	PointDependencies = {
+		info = {
+			label = "Minimum Players"
+		},
+		MinPlayer = {
+			value = 3,
+			label = "Minimum Players",
+			tooltip = "Players needed to get points, if below that number, Points will not be given for ttt events"
+		},
+	},
 }
 
 -- For Drops integration: Returns players that can get a drop once the round ends
